@@ -266,15 +266,14 @@ const App: React.FC = () => {
                       <p className="font-bold text-brand-text mb-3 flex items-center justify-center gap-2">
                         <span className="animate-pulse">🎁</span> Reward Unlocked!
                       </p>
-                      <div className="aspect-video rounded-lg overflow-hidden bg-gray-200 shadow-md group relative">
-                        <img 
-                          src={rewardImageUrl} 
-                          alt="Reward" 
+                      <div className="w-full max-h-[400px] flex items-center justify-center rounded-lg overflow-hidden bg-gray-200 shadow-md group relative">
+                        <img
+                          src={rewardImageUrl}
+                          alt="Reward"
                           onError={(e) => {
-                              // Fallback if the user's domain images don't load during testing
                               (e.target as HTMLImageElement).src = `https://picsum.photos/600/400?random=${Math.random()}`;
                           }}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          className="max-w-full max-h-full object-contain mx-auto transition-transform duration-700 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 ring-4 ring-white/50 rounded-lg pointer-events-none"></div>
                       </div>
