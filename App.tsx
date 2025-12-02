@@ -262,21 +262,47 @@ const App: React.FC = () => {
               {/* REWARD SECTION */}
               {score === 10 && rewardImageUrl && (
                 <div className="bg-gradient-to-br from-pink-100 to-purple-100 p-1 rounded-2xl shadow-inner mt-4">
-                   <div className="bg-white/40 p-3 rounded-xl border border-white/50">
+                  <div className="bg-white/40 p-3 rounded-xl border border-white/50">
                       <p className="font-bold text-brand-text mb-3 flex items-center justify-center gap-2">
                         <span className="animate-pulse">🎁</span> Reward Unlocked!
                       </p>
                       <div className="w-full max-h-[400px] flex items-center justify-center rounded-lg overflow-hidden bg-gray-200 shadow-md group relative">
-                        <img
-                          src={rewardImageUrl}
-                          alt="Reward"
-                          onError={(e) => {
-                              (e.target as HTMLImageElement).src = `https://picsum.photos/600/400?random=${Math.random()}`;
-                          }}
-                          className="max-w-full max-h-full object-contain mx-auto transition-transform duration-700 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 ring-4 ring-white/50 rounded-lg pointer-events-none"></div>
+                          <img
+                            src={rewardImageUrl}
+                            alt="Reward"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://picsum.photos/600/400?random=${Math.random()}`;
+                            }}
+                            className="max-w-full max-h-full object-contain mx-auto transition-transform duration-700 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 ring-4 ring-white/50 rounded-lg pointer-events-none"></div>
                       </div>
+
+                      {/* Download button */}
+                      <div className="mt-3 flex justify-center">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(rewardImageUrl);
+                              const blob = await res.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = 'reward.jpg';
+                              document.body.appendChild(a);
+                              a.click();
+                              a.remove();
+                              window.URL.revokeObjectURL(url);
+                            } catch (err) {
+                              console.error('Failed to download reward:', err);
+                            }
+                          }}
+                          className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors"
+                        >
+                          Download Reward
+                        </button>
+                      </div>
+
                   </div>
                 </div>
               )}
