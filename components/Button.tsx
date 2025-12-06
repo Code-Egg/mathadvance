@@ -5,6 +5,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'option' | 'correct' | 'wrong' | 'danger' | 'difficulty';
   fullWidth?: boolean;
   withSound?: boolean;
+  soundEnabled?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({ 
@@ -13,6 +14,7 @@ export const Button: React.FC<ButtonProps> = ({
   fullWidth = false, 
   className = '',
   withSound = true,
+  soundEnabled = true,
   onClick,
   ...props 
 }) => {
@@ -47,7 +49,7 @@ export const Button: React.FC<ButtonProps> = ({
   }
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (withSound && !props.disabled) {
+    if (withSound && soundEnabled && !props.disabled) {
        playSound.click();
     }
     if (onClick) onClick(e);
