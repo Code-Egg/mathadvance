@@ -4,7 +4,7 @@ import { generateGame } from './utils/mathUtils';
 import { playSound } from './utils/soundUtils';
 import { speak, cancelSpeech } from './utils/voiceUtils';
 import { Button } from './components/Button';
-import { X, Play, Brain, Calculator, Sigma, Flame, Baby, Volume2, VolumeX } from 'lucide-react';
+import { X, Play, Brain, Calculator, Sigma, Flame, Baby, Volume2, VolumeX, Triangle } from 'lucide-react';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('START');
@@ -237,9 +237,9 @@ const App: React.FC = () => {
                     soundEnabled={isSoundEnabled}
                     onClick={() => startGame('MEDIUM')}
                 >
-                   <Calculator size={32} className="mb-1" />
+                   <Sigma size={32} className="mb-1" />
                    <span>Medium</span>
-                   <span className="text-xs font-normal opacity-70">Basics + Quad</span>
+                   <span className="text-xs font-normal opacity-70">Quadratics</span>
                 </Button>
 
                 <Button 
@@ -248,9 +248,9 @@ const App: React.FC = () => {
                     soundEnabled={isSoundEnabled}
                     onClick={() => startGame('HARD')}
                 >
-                   <Sigma size={32} className="mb-1" />
+                   <Triangle size={32} className="mb-1" />
                    <span>Hard</span>
-                   <span className="text-xs font-normal opacity-70">Adv. Quadratic</span>
+                   <span className="text-xs font-normal opacity-70">Trigonometry</span>
                 </Button>
 
                 <Button 
@@ -261,7 +261,7 @@ const App: React.FC = () => {
                 >
                    <Flame size={32} className="mb-1" />
                    <span>HELL</span>
-                   <span className="text-xs font-normal opacity-70">Calculus & Quad</span>
+                   <span className="text-xs font-normal opacity-70">Calc + Trig</span>
                 </Button>
               </div>
             </div>

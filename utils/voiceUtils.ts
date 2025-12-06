@@ -11,7 +11,11 @@ export const speak = (text: string) => {
     .replace(/÷/g, " divided by ")
     .replace(/=/g, " equals ")
     .replace(/∫/g, " integral ")
-    .replace(/²/g, " squared ");
+    .replace(/²/g, " squared ")
+    .replace(/sin/g, " sine ")
+    .replace(/cos/g, " cosine ")
+    .replace(/tan/g, " tangent ")
+    .replace(/°/g, " degrees ");
 
   const utterance = new SpeechSynthesisUtterance(speechText);
   utterance.lang = 'en-US';
@@ -19,7 +23,6 @@ export const speak = (text: string) => {
   
   // Try to pick a pleasant voice
   const voices = window.speechSynthesis.getVoices();
-  // Prefer Google US English or a generic Female voice if available
   const preferredVoice = voices.find(v => v.name.includes('Google US English')) || 
                          voices.find(v => v.lang === 'en-US' && v.name.includes('Female'));
   

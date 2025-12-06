@@ -5,6 +5,7 @@ export type OperationType =
   | 'DIVIDE' 
   | 'QUADRATIC_BASIC' 
   | 'QUADRATIC_ADVANCED' 
+  | 'TRIGONOMETRY'
   | 'CALCULUS';
 
 export interface Question {

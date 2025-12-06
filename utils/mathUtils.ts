@@ -8,50 +8,61 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return [...array].sort(() => Math.random() - 0.5);
 };
 
-const generateDistractors = (correct: number, count: number = 3): number[] => {
-  const distractors = new Set<number>();
-  while (distractors.size < count) {
-    const offset = getRandomInt(-5, 5);
-    const val = correct + offset;
-    if (val !== correct) {
-      distractors.add(val);
-    }
-  }
-  return Array.from(distractors);
-};
+const generateId = () => Math.random().toString(36).substring(2, 9);
+
+// Pre-defined trig problems to ensure "nice" answers
+const trigProblems = [
+  { text: 'sin(0°)', ans: 0 },
+  { text: 'sin(30°)', ans: 0.5 },
+  { text: 'sin(90°)', ans: 1 },
+  { text: 'sin(270°)', ans: -1 },
+  { text: 'cos(0°)', ans: 1 },
+  { text: 'cos(60°)', ans: 0.5 },
+  { text: 'cos(90°)', ans: 0 },
+  { text: 'cos(180°)', ans: -1 },
+  { text: 'tan(0°)', ans: 0 },
+  { text: 'tan(45°)', ans: 1 },
+  { text: 'sin(180°)', ans: 0 },
+  { text: 'cos(360°)', ans: 1 },
+];
 
 export const generateQuestion = (type: OperationType): Question => {
-  let a, b, answer, displayText;
-  let options: number[] = [];
+  let answer: number = 0;
+  let displayText = '';
+  // Used to store other valid-looking answers (like the other root in a quadratic)
+  // that we definitely want as distractors.
+  const preFilledOptions: number[] = [];
 
   switch (type) {
     case 'ADD':
-      // Number under 100
-      a = getRandomInt(1, 80);
-      b = getRandomInt(1, 100 - a);
-      answer = a + b;
-      displayText = `${a} + ${b} = ?`;
+      const a_add = getRandomInt(1, 80);
+      const b_add = getRandomInt(1, 100 - a_add);
+      answer = a_add + b_add;
+      displayText = `${a_add} + ${b_add} = ?`;
       break;
+
     case 'SUBTRACT':
-      // Number under 100
-      a = getRandomInt(10, 99);
-      b = getRandomInt(1, a);
-      answer = a - b;
-      displayText = `${a} - ${b} = ?`;
+      const a_sub = getRandomInt(10, 99);
+      const b_sub = getRandomInt(1, a_sub);
+      answer = a_sub - b_sub;
+      displayText = `${a_sub} - ${b_sub} = ?`;
       break;
+
     case 'MULTIPLY':
-      // 9x9
-      a = getRandomInt(1, 9);
-      b = getRandomInt(1, 9);
-      answer = a * b;
-      displayText = `${a} × ${b} = ?`;
+      const a_mul = getRandomInt(1, 9);
+      const b_mul = getRandomInt(1, 9);
+      answer = a_mul * b_mul;
+      displayText = `${a_mul} × ${b_mul} = ?`;
       break;
+
     case 'DIVIDE':
-      b = getRandomInt(2, 9);
-      answer = getRandomInt(2, 9);
-      a = b * answer;
-      displayText = `${a} ÷ ${b} = ?`;
+      const b_div = getRandomInt(2, 9);
+      const res_div = getRandomInt(2, 9);
+      const a_div = b_div * res_div;
+      answer = res_div;
+      displayText = `${a_div} ÷ ${b_div} = ?`;
       break;
+
     case 'QUADRATIC_BASIC':
       // Monic: x^2 + Bx + C = 0.
       const r1 = getRandomInt(1, 9);
@@ -65,24 +76,14 @@ export const generateQuestion = (type: OperationType): Question => {
       displayText = `x² ${signB} ${absB}x + ${C} = 0`;
       displayText = `Solve for x: ${displayText}`;
       
-      options = [r1, r2];
-      while(options.length < 4) {
-         let d = getRandomInt(1, 15);
-         if(!options.includes(d)) options.push(d);
-      }
-      options = Array.from(new Set(options));
-      while(options.length < 4) {
-         let d = getRandomInt(1, 15);
-         if(!options.includes(d)) options.push(d);
-      }
+      preFilledOptions.push(r1, r2);
       break;
 
     case 'QUADRATIC_ADVANCED':
       // Non-monic: Ax^2 + Bx + C = 0.
-      // (x - root1)(nx - k) = nx^2 - (k + n*root1)x + (root1*k)
-      const root_adv = getRandomInt(-5, 5); // Integer root we want them to find
-      const n_adv = getRandomInt(2, 4); // coefficient for x^2
-      const k_adv = getRandomInt(-5, 5); // other param
+      const root_adv = getRandomInt(-5, 5); 
+      const n_adv = getRandomInt(2, 4); 
+      const k_adv = getRandomInt(-5, 5); 
       
       const CoeffA = n_adv;
       const CoeffB = -(k_adv + n_adv * root_adv);
@@ -96,6 +97,12 @@ export const generateQuestion = (type: OperationType): Question => {
       const sC_adv = CoeffC >= 0 ? `+ ${CoeffC}` : `- ${Math.abs(CoeffC)}`;
       
       displayText = `Find integer x: ${CoeffA}x² ${sB_adv}x ${sC_adv} = 0`;
+      break;
+
+    case 'TRIGONOMETRY':
+      const problem = trigProblems[Math.floor(Math.random() * trigProblems.length)];
+      answer = problem.ans;
+      displayText = problem.text;
       break;
 
     case 'CALCULUS':
@@ -117,22 +124,41 @@ export const generateQuestion = (type: OperationType): Question => {
       break;
       
     default:
-      a = 0; b= 0; answer = 0; displayText = 'Error';
+      displayText = 'Error';
   }
 
-  if (options.length === 0) {
-    const dists = generateDistractors(answer);
-    options = shuffleArray([...dists, answer]);
-  } else {
-    options = shuffleArray(options);
+  // ROBUST OPTION GENERATION
+  const optionsSet = new Set<number>();
+  optionsSet.add(answer);
+
+  preFilledOptions.forEach(opt => optionsSet.add(opt));
+
+  let safetyCounter = 0;
+  while (optionsSet.size < 4 && safetyCounter < 100) {
+    let distractor: number;
+    safetyCounter++;
+
+    if (type === 'TRIGONOMETRY') {
+      // Special pool for trig answers to keep them "clean"
+      const pool = [0, 0.5, 1, -1, -0.5, 2];
+      distractor = pool[Math.floor(Math.random() * pool.length)];
+    } else if (type === 'QUADRATIC_BASIC') {
+       distractor = getRandomInt(1, 15);
+    } else {
+       const offset = getRandomInt(-5, 5);
+       if (offset === 0) continue;
+       distractor = answer + offset;
+    }
+    
+    optionsSet.add(distractor);
   }
 
   return {
-    id: crypto.randomUUID(),
+    id: generateId(),
     type,
     displayText,
     correctAnswer: answer,
-    options
+    options: shuffleArray(Array.from(optionsSet))
   };
 };
 
@@ -153,22 +179,19 @@ export const generateGame = (difficulty: Difficulty, count: number = 10): Questi
         break;
         
       case 'MEDIUM':
-        // Easy + Basic Quadratic
-        if (r < 0.2) type = 'ADD';
-        else if (r < 0.4) type = 'SUBTRACT';
-        else if (r < 0.6) type = 'MULTIPLY';
-        else if (r < 0.8) type = 'DIVIDE';
-        else type = 'QUADRATIC_BASIC';
+        // Quadratic Only (Mix Basic and Advanced)
+        if (r < 0.5) type = 'QUADRATIC_BASIC';
+        else type = 'QUADRATIC_ADVANCED';
         break;
         
       case 'HARD':
-        // Advanced Quadratic
-        type = 'QUADRATIC_ADVANCED';
+        // Trigonometric Only
+        type = 'TRIGONOMETRY';
         break;
         
       case 'HELL':
-        // Advanced Quadratic + Calculus
-        if (r < 0.5) type = 'QUADRATIC_ADVANCED';
+        // Trig + Calculus
+        if (r < 0.5) type = 'TRIGONOMETRY';
         else type = 'CALCULUS';
         break;
     }
