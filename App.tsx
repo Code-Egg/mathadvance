@@ -4,7 +4,7 @@ import { generateGame } from './utils/mathUtils';
 import { playSound } from './utils/soundUtils';
 import { speak, cancelSpeech } from './utils/voiceUtils';
 import { Button } from './components/Button';
-import { X, Play, Brain, Calculator, Sigma, Flame, Baby, Volume2, VolumeX, Triangle } from 'lucide-react';
+import { X, Play, Brain, Calculator, Sigma, Flame, Baby, Volume2, VolumeX, Triangle, Download } from 'lucide-react';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('START');
@@ -131,6 +131,30 @@ const App: React.FC = () => {
       setPokemonName("皮卡丘 (Fallback)");
     } finally {
       setLoadingReward(false);
+    }
+  };
+
+  const handleDownloadReward = async () => {
+    if (!rewardImageUrl) return;
+    
+    try {
+      // Fetch as blob to allow direct download and avoid CORS tab opening issues
+      const response = await fetch(rewardImageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      // Sanitize filename
+      const filename = `${pokemonName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_reward.png`;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download failed:", error);
+      // Fallback: open in new tab
+      window.open(rewardImageUrl, '_blank');
     }
   };
 
@@ -367,6 +391,18 @@ const App: React.FC = () => {
                           <p className="mt-2 text-2xl font-black text-gray-800 tracking-wide bg-white/60 px-6 py-1 rounded-full border border-white/50 shadow-sm">
                              {pokemonName}
                           </p>
+                          
+                          {/* DOWNLOAD BUTTON */}
+                          <Button 
+                            variant="secondary" 
+                            soundEnabled={isSoundEnabled}
+                            onClick={handleDownloadReward}
+                            className="mt-4 flex items-center gap-2 text-sm py-2 px-6 rounded-full shadow-md hover:shadow-lg transition-all"
+                            title="Save Reward"
+                          >
+                            <Download size={18} className="text-brand-purple" /> 
+                            <span className="text-gray-600 font-bold">Save Image</span>
+                          </Button>
                         </div>
                       ) : null}
                   </div>
