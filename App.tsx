@@ -24,6 +24,9 @@ const App: React.FC = () => {
   // Reward States
   const [rewardImageUrl, setRewardImageUrl] = useState<string>('');
   const [pokemonName, setPokemonName] = useState<string>('');
+  const [pokemonId, setPokemonId] = useState<number>(0);
+  const [pokemonStats, setPokemonStats] = useState<{name: string, value: number, max: number}[]>([]);
+  const [pokemonTypes, setPokemonTypes] = useState<string[]>([]);
   const [loadingReward, setLoadingReward] = useState(false);
 
   const getOfflineEncouragement = (score: number) => {
@@ -59,8 +62,13 @@ const App: React.FC = () => {
     setGameState('PLAYING');
     setSelectedOption(null);
     setIsCorrect(null);
+    
+    // Reset Reward
     setRewardImageUrl('');
     setPokemonName('');
+    setPokemonId(0);
+    setPokemonStats([]);
+    setPokemonTypes([]);
   };
 
   const abortGame = () => {
@@ -105,30 +113,84 @@ const App: React.FC = () => {
     }, 1500); // Increased slightly to allow voice to finish
   };
 
+  // Static maps for translation and colors
+  const typeTranslations: Record<string, string> = {
+    normal: '一般', fighting: '格鬥', flying: '飛行', poison: '毒', ground: '地面', rock: '岩石', bug: '蟲',
+    ghost: '幽靈', steel: '鋼', fire: '火', water: '水', grass: '草', electric: '電', psychic: '超能',
+    ice: '冰', dragon: '龍', dark: '惡', fairy: '妖精'
+  };
+
+  const typeColors: Record<string, string> = {
+    normal: '#A8A77A', fighting: '#C22E28', flying: '#A98FF3', poison: '#A33EA1', ground: '#E2BF65',
+    rock: '#B6A136', bug: '#A6B91A', ghost: '#735797', steel: '#B7B7CE', fire: '#EE8130',
+    water: '#6390F0', grass: '#7AC74C', electric: '#F7D02C', psychic: '#F95587', ice: '#96D9D6',
+    dragon: '#6F35FC', dark: '#705746', fairy: '#D685AD'
+  };
+
+  const statTranslations: Record<string, string> = {
+    'hp': 'HP',
+    'attack': '攻擊',
+    'defense': '防禦',
+    'special-attack': '特攻',
+    'special-defense': '特防',
+    'speed': '速度'
+  };
+
   const fetchPokemonReward = async () => {
     setLoadingReward(true);
     try {
       // Random Pokemon ID (Gen 1-9 approx, up to 1000)
       const id = Math.floor(Math.random() * 1000) + 1;
+      setPokemonId(id);
+
+      // Parallel Fetch: Species (Name) AND Main Data (Stats/Types)
+      const [speciesRes, mainRes] = await Promise.all([
+        fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`),
+        fetch(`https://pokeapi.co/api/v2/pokemon/${id}`)
+      ]);
+
+      if (!speciesRes.ok || !mainRes.ok) throw new Error("Failed to fetch pokemon data");
       
-      // 1. Get Species data for Chinese name
-      const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
-      if (!speciesRes.ok) throw new Error("Failed to fetch species");
       const speciesData = await speciesRes.json();
+      const mainData = await mainRes.json();
       
-      const chineseEntry = speciesData.names.find((n: any) => n.language.name === 'zh-Hans');
-      const name = chineseEntry ? chineseEntry.name : speciesData.name; // Fallback to English name
-      
+      // 1. Name Logic: Try Traditional Chinese (zh-Hant) first, then Simplified, then default
+      const tradChineseEntry = speciesData.names.find((n: any) => n.language.name === 'zh-Hant');
+      const simpChineseEntry = speciesData.names.find((n: any) => n.language.name === 'zh-Hans');
+      const name = tradChineseEntry ? tradChineseEntry.name : (simpChineseEntry ? simpChineseEntry.name : speciesData.name);
       setPokemonName(name);
 
-      // 2. Set Image URL (Official Artwork)
+      // 2. Types Logic
+      const types = mainData.types.map((t: any) => t.type.name);
+      setPokemonTypes(types);
+
+      // 3. Stats Logic
+      // Max stats for bar scaling (approximate max for base stats)
+      const stats = mainData.stats.map((s: any) => ({
+        name: statTranslations[s.stat.name] || s.stat.name,
+        value: s.base_stat,
+        max: 200 // Visual max cap for the bar
+      }));
+      setPokemonStats(stats);
+
+      // 4. Image Logic
       setRewardImageUrl(`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`);
       
     } catch (error) {
       console.error("Error fetching pokemon:", error);
       // Fallback
+      setPokemonId(25);
       setRewardImageUrl(`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png`);
       setPokemonName("皮卡丘 (Fallback)");
+      setPokemonTypes(['electric']);
+      setPokemonStats([
+        {name: 'HP', value: 35, max: 200},
+        {name: '攻擊', value: 55, max: 200},
+        {name: '防禦', value: 40, max: 200},
+        {name: '特攻', value: 50, max: 200},
+        {name: '特防', value: 50, max: 200},
+        {name: '速度', value: 90, max: 200},
+      ]);
     } finally {
       setLoadingReward(false);
     }
@@ -138,13 +200,11 @@ const App: React.FC = () => {
     if (!rewardImageUrl) return;
     
     try {
-      // Fetch as blob to allow direct download and avoid CORS tab opening issues
       const response = await fetch(rewardImageUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      // Sanitize filename
       const filename = `${pokemonName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_reward.png`;
       link.download = filename;
       document.body.appendChild(link);
@@ -153,7 +213,6 @@ const App: React.FC = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Download failed:", error);
-      // Fallback: open in new tab
       window.open(rewardImageUrl, '_blank');
     }
   };
@@ -183,7 +242,7 @@ const App: React.FC = () => {
 
       <div className="max-w-xl w-full bg-white/60 backdrop-blur-xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/50 relative z-10 transition-all duration-500">
         
-        {/* HEADER - Updated for Mobile Flex Layout */}
+        {/* HEADER */}
         <div className="bg-gradient-to-r from-brand-purple to-indigo-300 p-4 sm:p-6 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           
@@ -371,38 +430,75 @@ const App: React.FC = () => {
               {/* REWARD SECTION */}
               {score === 10 && (
                 <div className="bg-gradient-to-br from-pink-100 to-purple-100 p-1 rounded-2xl shadow-inner mt-4">
-                   <div className="bg-white/40 p-3 rounded-xl border border-white/50 min-h-[250px] flex flex-col items-center justify-center">
-                      <p className="font-bold text-brand-text mb-3 flex items-center justify-center gap-2">
-                        <span className="animate-pulse">🎁</span> Reward Unlocked!
-                      </p>
+                   <div className="bg-white/40 p-4 rounded-xl border border-white/50 min-h-[300px] flex items-center justify-center">
                       
                       {loadingReward ? (
                         <div className="w-12 h-12 border-4 border-brand-blue border-t-transparent rounded-full animate-spin my-8"></div>
                       ) : rewardImageUrl ? (
-                        <div className="flex flex-col items-center animate-fade-in w-full">
-                          <div className="relative w-48 h-48 group">
+                        <div className="flex flex-col sm:flex-row items-center justify-center animate-fade-in w-full gap-6 p-2">
+                          {/* Left Side: Image (Larger) */}
+                          <div className="relative w-48 h-48 sm:w-64 sm:h-64 shrink-0 group">
                              <div className="absolute inset-0 bg-white/50 rounded-full filter blur-xl scale-75 group-hover:scale-100 transition-transform"></div>
                              <img 
                                 src={rewardImageUrl} 
                                 alt="Reward"
-                                className="relative w-full h-full object-contain drop-shadow-lg transition-transform duration-700 group-hover:scale-110"
+                                className="relative w-full h-full object-contain drop-shadow-xl transition-transform duration-700 group-hover:scale-110"
                              />
                           </div>
-                          <p className="mt-2 text-2xl font-black text-gray-800 tracking-wide bg-white/60 px-6 py-1 rounded-full border border-white/50 shadow-sm">
-                             {pokemonName}
-                          </p>
-                          
-                          {/* DOWNLOAD BUTTON */}
-                          <Button 
-                            variant="secondary" 
-                            soundEnabled={isSoundEnabled}
-                            onClick={handleDownloadReward}
-                            className="mt-4 flex items-center gap-2 text-sm py-2 px-6 rounded-full shadow-md hover:shadow-lg transition-all"
-                            title="Save Reward"
-                          >
-                            <Download size={18} className="text-brand-purple" /> 
-                            <span className="text-gray-600 font-bold">Save Image</span>
-                          </Button>
+
+                          {/* Right Side: Attributes */}
+                          <div className="flex flex-col w-full sm:w-auto sm:flex-1 sm:max-w-xs space-y-3">
+                             {/* Name Header */}
+                             <div className="flex flex-wrap items-baseline gap-2 border-b border-gray-200 pb-2">
+                                <h3 className="text-2xl font-black text-gray-800 tracking-wide">
+                                   {pokemonName}
+                                </h3>
+                                <span className="text-gray-400 text-lg font-bold">
+                                  #{pokemonId.toString().padStart(3, '0')}
+                                </span>
+                             </div>
+
+                             {/* Types */}
+                             <div className="flex flex-wrap gap-2">
+                                {pokemonTypes.map((t) => (
+                                  <span 
+                                    key={t} 
+                                    style={{ backgroundColor: typeColors[t] || '#999' }}
+                                    className="px-2 py-0.5 rounded-md text-white text-[10px] font-bold uppercase shadow-sm tracking-wider"
+                                  >
+                                    {typeTranslations[t] || t}
+                                  </span>
+                                ))}
+                             </div>
+
+                             {/* Stats Compact Grid */}
+                             <div className="w-full bg-white/40 rounded-lg p-2 text-[10px] gap-y-1 flex flex-col shadow-sm border border-white/60">
+                                {pokemonStats.map((stat) => (
+                                  <div key={stat.name} className="flex items-center gap-2">
+                                    <span className="w-8 font-bold text-gray-500 text-right shrink-0">{stat.name}</span>
+                                    <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full bg-brand-blue rounded-full"
+                                        style={{ width: `${Math.min((stat.value / stat.max) * 100, 100)}%` }}
+                                      />
+                                    </div>
+                                    <span className="w-6 text-right font-mono text-gray-500">{stat.value}</span>
+                                  </div>
+                                ))}
+                             </div>
+
+                             {/* Download Button */}
+                              <Button 
+                                variant="secondary" 
+                                soundEnabled={isSoundEnabled}
+                                onClick={handleDownloadReward}
+                                className="self-start flex items-center gap-2 text-xs py-2 px-4 rounded-xl shadow-sm hover:shadow-md transition-all mt-2"
+                                title="Save Reward"
+                              >
+                                <Download size={14} className="text-brand-purple" /> 
+                                <span className="text-gray-600 font-bold">Save</span>
+                              </Button>
+                          </div>
                         </div>
                       ) : null}
                   </div>
