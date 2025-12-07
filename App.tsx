@@ -159,39 +159,45 @@ const App: React.FC = () => {
 
       <div className="max-w-xl w-full bg-white/60 backdrop-blur-xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/50 relative z-10 transition-all duration-500">
         
-        {/* HEADER */}
-        <div className="bg-gradient-to-r from-brand-purple to-indigo-300 p-6 text-center relative overflow-hidden">
+        {/* HEADER - Updated for Mobile Flex Layout */}
+        <div className="bg-gradient-to-r from-brand-purple to-indigo-300 p-4 sm:p-6 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           
-          <div className="relative z-10 flex justify-center items-center">
-            <h1 className="text-3xl font-bold text-white drop-shadow-md flex items-center gap-2">
-              <Brain className="w-8 h-8" />
-              Math Challenge
+          <div className="relative z-10 flex justify-between items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-md flex items-center gap-2">
+              <Brain className="w-8 h-8 flex-shrink-0" />
+              <span className="truncate">Math Challenge</span>
             </h1>
             
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 pr-4">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={toggleSound}
-                className={`p-2 rounded-full transition-colors ${isSoundEnabled ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-red-500/80 text-white hover:bg-red-600/80'}`}
+                className={`p-3 rounded-full transition-all border-2 ${
+                  isSoundEnabled 
+                    ? 'bg-white/20 border-white/40 text-white hover:bg-white/30' 
+                    : 'bg-red-500/80 border-red-400 text-white hover:bg-red-600/80'
+                }`}
                 title={isSoundEnabled ? "Mute Sound" : "Enable Sound"}
+                aria-label="Toggle Sound"
               >
-                {isSoundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                {isSoundEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
               </button>
 
               {gameState === 'PLAYING' && (
                  <button 
                    onClick={abortGame}
-                   className="bg-white/20 p-2 rounded-full hover:bg-red-500/80 hover:text-white transition-colors text-white"
+                   className="bg-white/20 p-3 rounded-full hover:bg-red-500/80 hover:text-white transition-colors text-white border-2 border-transparent hover:border-red-400"
                    title="Abort Game"
+                   aria-label="Abort Game"
                  >
-                   <X size={20} />
+                   <X size={24} />
                  </button>
               )}
             </div>
           </div>
 
           {gameState === 'PLAYING' && (
-            <div className="mt-4 flex justify-center gap-1.5">
+            <div className="mt-6 flex justify-center gap-1.5 px-2">
                {questions.map((_, idx) => (
                  <div 
                   key={idx}

@@ -29,9 +29,9 @@ const trigProblems = [
 export const generateQuestion = (type: OperationType): Question => {
   let answer: number = 0;
   let displayText = '';
-  // Used to store other valid-looking answers (like the other root in a quadratic)
-  // that we definitely want as distractors.
-  const preFilledOptions: number[] = [];
+  // Set of answers that are correct mathematically but shouldn't be distractors
+  // to avoid ambiguity (e.g., the second root of a quadratic).
+  const excludedOptions = new Set<number>();
 
   switch (type) {
     case 'ADD':
@@ -69,14 +69,20 @@ export const generateQuestion = (type: OperationType): Question => {
       const r2 = getRandomInt(1, 9);
       const B = -(r1 + r2);
       const C = r1 * r2;
+      
+      // Pick one root as the 'target' answer
       answer = Math.random() > 0.5 ? r1 : r2;
+      
+      // If the other root is different, exclude it from distractors
+      // to ensure unique correct choice.
+      if (r1 !== r2) {
+        excludedOptions.add(r1 === answer ? r2 : r1);
+      }
       
       const signB = B >= 0 ? '+' : '-';
       const absB = Math.abs(B);
       displayText = `x² ${signB} ${absB}x + ${C} = 0`;
       displayText = `Solve for x: ${displayText}`;
-      
-      preFilledOptions.push(r1, r2);
       break;
 
     case 'QUADRATIC_ADVANCED':
@@ -93,6 +99,15 @@ export const generateQuestion = (type: OperationType): Question => {
 
       answer = root_adv; 
       
+      // Check second root: x = k/n
+      // If it's an integer and different from answer, exclude it.
+      if (k_adv % n_adv === 0) {
+        const otherRoot = k_adv / n_adv;
+        if (otherRoot !== answer) {
+          excludedOptions.add(otherRoot);
+        }
+      }
+
       const sB_adv = CoeffB >= 0 ? `+ ${CoeffB}` : `- ${Math.abs(CoeffB)}`;
       const sC_adv = CoeffC >= 0 ? `+ ${CoeffC}` : `- ${Math.abs(CoeffC)}`;
       
@@ -131,23 +146,28 @@ export const generateQuestion = (type: OperationType): Question => {
   const optionsSet = new Set<number>();
   optionsSet.add(answer);
 
-  preFilledOptions.forEach(opt => optionsSet.add(opt));
-
   let safetyCounter = 0;
   while (optionsSet.size < 4 && safetyCounter < 100) {
     let distractor: number;
     safetyCounter++;
 
     if (type === 'TRIGONOMETRY') {
-      // Special pool for trig answers to keep them "clean"
       const pool = [0, 0.5, 1, -1, -0.5, 2];
       distractor = pool[Math.floor(Math.random() * pool.length)];
     } else if (type === 'QUADRATIC_BASIC') {
        distractor = getRandomInt(1, 15);
+    } else if (type === 'QUADRATIC_ADVANCED') {
+       distractor = getRandomInt(-10, 10);
     } else {
        const offset = getRandomInt(-5, 5);
        if (offset === 0) continue;
        distractor = answer + offset;
+    }
+    
+    // Ensure distractor is not the answer (Set handles this)
+    // AND Ensure distractor is not a valid alternative answer (excludedOptions)
+    if (excludedOptions.has(distractor)) {
+      continue;
     }
     
     optionsSet.add(distractor);
